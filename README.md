@@ -1,4 +1,8 @@
 # toodoWechat 微信公众号开发框架
+
+# 视频教程
+<iframe src="//player.bilibili.com/player.html?aid=629610233&bvid=BV1eb4y197aZ&cid=308144856&page=1" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"> </iframe>
+
 # 安装
 克隆GitHub源码至本地或者[点击下载源码包](https://github.com/MR5356/toodoWechat/archive/main.zip)，然后拷贝ToodoWechat.py至你的项目路径
 ```bash
