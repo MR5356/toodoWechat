@@ -2,7 +2,7 @@
 # 安装
 克隆GitHub源码至本地或者[点击下载源码包](https://github.com/MR5356/toodoWechat/archive/main.zip)，然后拷贝ToodoWechat.py至你的项目路径
 ```bash
-git https://github.com/MR5356/toodoWechat.git
+git clone https://github.com/MR5356/toodoWechat.git
 ```
 
 # 使用
