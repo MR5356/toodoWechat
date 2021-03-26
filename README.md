@@ -10,25 +10,31 @@ git clone https://github.com/MR5356/toodoWechat.git
 ```
 
 # 使用
-## 实例化应用
-```python
-import ToodoWechat
-
-a = ToodoWechat('appID', 'appSecret')
+## 作为服务器使用
+```bash
+python3 app.py
 ```
-## 上传图文中的图片，返回图片src地址，可直接在图文中使用
+
+## 作为函数包使用
+### 实例化应用
+```python
+import WechatMP
+
+a = WechatMP.WechatMP(Token=', appId=', secret='')
+```
+### 上传图文中的图片，返回图片src地址，可直接在图文中使用
 ```python
 picUrl = a.uploadNewsPicture('test.png')
 ```
-## 上传图片素材
+### 上传图片素材
 ```python
 media_id = a.uploadMedia('image', 'test.png').get('media_id')
 ```
-## 上传视频素材
+### 上传视频素材
 ```python
 media_id = a.uploadMedia('video', 'test.mp4', title="这个是视频的标题", introduction="测试视频").get('media_id')
 ```
-## 上传图文，需传入图文列表，可以在articles里面放置多个图文数据(最多8个)，其中content字段为正文，支持HTML语法
+### 上传图文，需传入图文列表，可以在articles里面放置多个图文数据(最多8个)，其中content字段为正文，支持HTML语法
 
 ```python
 data = {
