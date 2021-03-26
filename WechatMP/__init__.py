@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import hashlib
 import os
 import json
 import time
@@ -22,14 +23,27 @@ def checkError(reqJson):
     return reqJson
 
 
-class ToodoWechat:
-    def __init__(self, appID, appSecret):
-        self.appID = appID
-        self.appSecret = appSecret
+class WechatMP:
+    """
+    本接口适用于个人订阅号，加密类型支持明文模式和兼容模式
+    功能列表：
+        1、获取access_token
+        2、获取微信服务器IP地址
+        3、验证消息真实性
+        4、接收普通消息（包括语音识别结果，需要在公众号后台 开发->接口权限 中手动开启）
+        5、接收事件推送
+        6、自动回复
+        7、永久素材管理
+    网页服务尚未开发，仅包含功能服务
+    """
+    def __init__(self, Token, appId, secret, encodingAESKey=None):
+        self.Token = Token
+        self.appId = appId
+        self.secret = secret
+        self.encodingAESKey = encodingAESKey
         self.basePath = os.path.dirname(__file__)
         self._session = requests.Session()
-        # 确保多个公众号的缓存不会混乱
-        self.tokenCache = md5(f"{self.appID}{self.appSecret}".encode()).hexdigest() + '.json'
+        self.tokenCache = md5(f"{self.appId}{self.secret}".encode()).hexdigest() + '.json'
 
     def _requests(self, method, url, decode_level=2, retry=10, timeout=15, **kwargs):
         if method in ["get", "post"]:
@@ -48,7 +62,7 @@ class ToodoWechat:
         文件缓存token格式：{"access_token":"ACCESS_TOKEN","expires_in":7200,"expires_at": int}
         :return: access_token
         """
-        baseUrl = f"https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid={self.appID}&secret={self.appSecret}"
+        baseUrl = f"https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid={self.appId}&secret={self.secret}"
         res = checkError(self._requests('get', baseUrl))
         res['expires_at'] = int(time.time()) + res['expires_in']
         with open(os.path.join(self.basePath, self.tokenCache), 'w') as f:
@@ -125,30 +139,61 @@ class ToodoWechat:
             res = checkError(self._requests('post', baseUrl, files={"media": mediaFile}))
         return res
 
+    def checkSignature(self, timestamp, nonce, signature):
+        temp = [self.Token, timestamp, nonce]
+        temp.sort()
+        res = hashlib.sha1("".join(temp).encode('utf8')).hexdigest()
+        return True if res == signature else False
 
-if __name__ == '__main__':
-    # 实例化应用
-    a = ToodoWechat('appID', 'appSecret')
-    # 上传图文中的图片，返回图片src地址，可直接在图文中使用
-    picUrl = a.uploadNewsPicture('test.png')
-    # 上传图片素材
-    media_id1 = a.uploadMedia('image', 'test.png').get('media_id')
-    # 上传视频素材
-    media_id2 = a.uploadMedia('video', 'test.mp4', title="这个是视频的标题", introduction="测试视频").get('media_id')
-    # 图文列表，可以在articles里面放置多个图文数据(最多8个)，其中content字段为正文，支持HTML语法
-    data = {
-        "articles": [{
-            "title": f"图文标题",
-            "thumb_media_id": "封面的media_id",
-            "author": '图文作者',
-            "digest": f"图文简介",
-            "show_cover_pic": 1,
-            "content": "图文正文(支持HTML语法)",
-            "content_source_url": '阅读原文的链接地址',
-            "need_open_comment": 1,
-            "only_fans_can_comment": 1
+    def replyMsg(self, msg):
+        return {
+            'xml': {
+                'ToUserName': msg.get('FromUserName'),
+                'FromUserName': msg.get('ToUserName'),
+                'CreateTime': int(time.time()),
+            }
         }
-        ]
-    }
-    # 上传图文
-    a.uploadNews(data)
+
+    def replyText(self, msg, text):
+        res = self.replyMsg(msg)
+        res['xml']['MsgType'] = 'text'
+        res['xml']['Content'] = text
+        return res
+
+    def replyImage(self, msg, MediaId):
+        res = self.replyMsg(msg)
+        res['xml']['MsgType'] = 'image'
+        res['xml']['Image'] = {'MediaId': MediaId}
+        return res
+
+    def replyVoice(self, msg, MediaId):
+        res = self.replyMsg(msg)
+        res['xml']['MsgType'] = 'voice'
+        res['xml']['Voice'] = {'MediaId': MediaId}
+        return res
+
+    def replyVideo(self, msg, MediaId, title=None, desc=None):
+        res = self.replyMsg(msg)
+        res['xml']['MsgType'] = 'video'
+        res['xml']['Video'] = {}  # {'MediaId': MediaId, 'Title': title, 'Description': desc}
+        res['xml']['Video']['MediaId'] = MediaId
+        if title: res['xml']['Video']['Title'] = title
+        if desc: res['xml']['Video']['Description'] = desc
+        return res
+
+    def replyMusic(self, msg, pic, title=None, desc=None, url=None, hqUrl=None):
+        res = self.replyMsg(msg)
+        res['xml']['MsgType'] = 'music'
+        res['xml']['Music'] = {'ThumbMediaId': pic}
+        if title: res['xml']['Music']['Title'] = title
+        if desc: res['xml']['Music']['Description'] = desc
+        if url: res['xml']['Music']['MusicURL'] = url
+        if hqUrl: res['xml']['Music']['HQMusicUrl'] = hqUrl
+        return res
+
+    def replyArticles(self, msg, title, desc, pic, url):
+        res = self.replyMsg(msg)
+        res['xml']['MsgType'] = 'news'
+        res['xml']['ArticleCount'] = 1
+        res['xml']['Articles'] = {'item': {'Title': title, 'Description': desc, 'PicUrl': pic, 'Url': url}}
+        return res
