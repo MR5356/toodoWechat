@@ -20,7 +20,7 @@ python3 app.py
 ```python
 import WechatMP
 
-a = WechatMP.WechatMP(Token=', appId=', secret='')
+a = WechatMP.WechatMP(Token='', appId='', secret='')
 ```
 ### 上传图文中的图片，返回图片src地址，可直接在图文中使用
 ```python
